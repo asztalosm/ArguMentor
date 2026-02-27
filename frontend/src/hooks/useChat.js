@@ -28,7 +28,7 @@ export function useChat() {
       }
 
       const data = await res.json()
-      addMessage({ role: 'assistant', content: data.reply, mode })
+      addMessage({ role: 'assistant', content: data.content, mode })
     } catch (e) {
       setError(e.message || 'Something went wrong.')
     } finally {
