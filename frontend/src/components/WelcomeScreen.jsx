@@ -1,57 +1,71 @@
-const INFO = {
+// components/WelcomeScreen.jsx
+import { useChatStore } from '../contexts/store'
+
+const MODE_CONFIG = {
   debate: {
-    icon: '⚔️', title: 'Debate Mode',
-    sub: 'State your position — I will argue the opposite.',
-    tips: ['Make a clear, specific claim', 'I always take the counter-position', 'Challenge me back — debates sharpen thinking'],
-    color: 'var(--debate)',
+    badge: 'Debate Mode',
+    title: 'Challenge any position.',
+    sub: "Present a claim and I'll argue the strongest case against it — or defend a position you're struggling to articulate.",
+    prompts: [
+      'Argue against universal basic income',
+      'Defend the position that social media does more good than harm',
+      'Challenge the idea that remote work increases productivity',
+    ],
   },
   teach: {
-    icon: '🎓', title: 'Teach the AI',
-    sub: 'You are the teacher. Explain anything and watch me learn.',
-    tips: ['Explain a concept in your own words', 'I will ask questions and paraphrase', 'Correct me if I misunderstand'],
-    color: 'var(--teach)',
+    badge: 'Teach Mode',
+    title: 'Understand anything deeply.',
+    sub: "Ask about a concept, topic, or skill. I'll explain it clearly, build intuition, and check your understanding.",
+    prompts: [
+      'Explain how transformers work in machine learning',
+      'Teach me the basics of contract law',
+      'Help me understand why inflation affects purchasing power',
+    ],
   },
   mistake_hunter: {
-    icon: '🔍', title: 'Mistake Hunter',
-    sub: 'Paste any text and I will find every error and explain it.',
-    tips: ['Works on essays, emails, and more', 'I check grammar, logic, and style', 'You get a full breakdown with fixes'],
-    color: 'var(--hunter)',
+    badge: 'Mistake Hunter',
+    title: "Find what's wrong.",
+    sub: "Share your argument, essay, code, or reasoning. I'll identify errors, logical fallacies, and blind spots.",
+    prompts: [
+      'Review the logic in my argument about climate policy',
+      'Find the flaw in this syllogism: All A are B...',
+      'Check my reasoning about this investment thesis',
+    ],
   },
 }
 
 export default function WelcomeScreen({ mode }) {
-  const { icon, title, sub, tips, color } = INFO[mode]
+  // Clicking a prompt calls addMessage directly — the actual API dispatch
+  // lives in ChatInput / wherever you wire up your API handler.
+  // Here we just pre-fill via a custom event so ChatInput can submit it,
+  // keeping API logic in one place.
+  const { addMessage, setLoading, setError } = useChatStore()
+
+  const handlePrompt = (text) => {
+    // Dispatch a custom event that ChatInput listens to for pre-fill,
+    // OR directly call addMessage if you want to trigger it straight away.
+    // Using a CustomEvent keeps API wiring in one place (ChatInput).
+    window.dispatchEvent(new CustomEvent('am:prefill', { detail: text }))
+  }
+
+  const config = MODE_CONFIG[mode] || MODE_CONFIG.debate
 
   return (
-    <div style={{
-      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '40px 20px', animation: 'slideIn 0.4s ease both',
-    }}>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, maxWidth: 420, textAlign: 'center' }}>
-        <div style={{
-          fontSize: 48, width: 82, height: 82, borderRadius: 18,
-          background: `color-mix(in srgb, ${color} 10%, transparent)`,
-          border: `1px solid color-mix(in srgb, ${color} 25%, transparent)`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: `0 0 40px color-mix(in srgb, ${color} 18%, transparent)`,
-          animation: 'pulse 3s ease infinite',
-        }}>{icon}</div>
-        <h2 style={{ fontSize: '1.6rem', fontWeight: 800, letterSpacing: '-0.03em' }}>{title}</h2>
-        <p style={{ color: 'var(--muted)', fontSize: '0.93rem', lineHeight: 1.6 }}>{sub}</p>
-        <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 9, width: '100%', marginTop: 6 }}>
-          {tips.map((tip, i) => (
-            <li key={i} style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              padding: '11px 15px', background: 'var(--elevated)',
-              border: '1px solid var(--border)', borderRadius: 12,
-              fontSize: '0.84rem', color: 'var(--muted)', textAlign: 'left',
-              animation: `fadeUp 0.4s ${i * 80}ms ease both`,
-            }}>
-              <span style={{ width: 6, height: 6, minWidth: 6, borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}` }} />
-              {tip}
-            </li>
-          ))}
-        </ul>
+    <div className="welcome" data-mode={mode}>
+      <div className="welcome-mode-badge">{config.badge}</div>
+      <h1 className="welcome-title">{config.title}</h1>
+      <p className="welcome-sub">{config.sub}</p>
+      <div className="welcome-prompts">
+        {config.prompts.map((p, i) => (
+          <button
+            key={i}
+            className="welcome-prompt-btn"
+            onClick={() => handlePrompt(p)}
+            style={{ animationDelay: `${i * 60}ms` }}
+          >
+            {p}
+          </button>
+        ))}
       </div>
     </div>
   )

@@ -1,26 +1,22 @@
 // components/ChatInput.jsx
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useChatStore } from '../contexts/store'
-import { sendChat } from '../services/api'
 
 export default function ChatInput() {
-  const { addMessage, setLoading, setError, loading, mode, messages } = useChatStore()
+  const { addMessage, setLoading, setError, loading, mode } = useChatStore()
   const [value, setValue] = useState('')
   const textareaRef = useRef(null)
 
-  // Listen for prompt pre-fills fired by WelcomeScreen
+  // Listen for prompt pre-fills from WelcomeScreen
   useEffect(() => {
     const handler = (e) => {
       setValue(e.detail)
+      textareaRef.current?.focus()
+      // Reset height
       if (textareaRef.current) {
-        textareaRef.current.focus()
-        // Trigger auto-resize after state update
-        requestAnimationFrame(() => {
-          if (!textareaRef.current) return
-          textareaRef.current.style.height = 'auto'
-          textareaRef.current.style.height =
-            `${Math.min(textareaRef.current.scrollHeight, 160)}px`
-        })
+        textareaRef.current.style.height = 'auto'
+        textareaRef.current.style.height =
+          `${Math.min(textareaRef.current.scrollHeight, 160)}px`
       }
     }
     window.addEventListener('am:prefill', handler)
@@ -31,32 +27,36 @@ export default function ChatInput() {
     const trimmed = value.trim()
     if (!trimmed || loading) return
 
-    // Clear input immediately
     setValue('')
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
       textareaRef.current.focus()
     }
 
-    // Snapshot history BEFORE adding the new user message.
-    // Backend expects history = prior turns only; the new message is sent separately.
-    const history = messages.map(({ role, content }) => ({ role, content }))
-
-    // Optimistically add user message to store
+    // Add user message to store
     addMessage({ role: 'user', content: trimmed, mode })
 
+
+    const reply = await api.chat({ mode, messages: [...get().messages] })
+    addMessage({ role: 'assistant', content: reply, mode })
     setLoading(true)
     setError(null)
-
     try {
-      const reply = await sendChat({ message: trimmed, mode, history })
-      addMessage({ role: 'assistant', content: reply, mode })
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          message: trimmed,
+          mode,
+          history: messages.slice(-20).map(({role, content}) => ({role, content})),
+        }),
+      })
     } catch (err) {
-      setError(err?.message ?? 'Something went wrong. Check the server is running.')
+      setError(err?.message || 'Something went wrong.')
     } finally {
       setLoading(false)
     }
-  }, [value, loading, mode, messages, addMessage, setLoading, setError])
+  }, [value, loading, mode, addMessage, setLoading, setError])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -95,15 +95,13 @@ export default function ChatInput() {
         >
           {loading
             ? (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2"
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                 style={{ animation: 'spin 0.7s linear infinite' }}>
                 <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
               </svg>
             ) : (
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2.2"
-                strokeLinecap="round" strokeLinejoin="round">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="22" y1="2" x2="11" y2="13"/>
                 <polygon points="22 2 15 22 11 13 2 9 22 2"/>
               </svg>

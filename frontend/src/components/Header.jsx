@@ -1,96 +1,58 @@
-import { useState } from 'react'
+// components/Header.jsx
 import { useChatStore } from '../contexts/store'
-import SettingsPanel from './SettingsPanel'
 
 const MODES = [
-  { id: 'debate',         label: 'Debate',  icon: '⚔️',  color: 'var(--debate)' },
-  { id: 'teach',          label: 'Teach',   icon: '🎓',  color: 'var(--teach)' },
-  { id: 'mistake_hunter', label: 'Hunt',    icon: '🔍',  color: 'var(--hunter)' },
+  { key: 'debate',         label: 'Debate',  route: '/debate' },
+  { key: 'teach',          label: 'Teach',   route: '/teach'  },
+  { key: 'mistake_hunter', label: 'Hunt',    route: '/hunt'   },
 ]
 
-export default function Header() {
-  const { mode, setMode, clearHistory } = useChatStore()
-  const [showSettings, setShowSettings] = useState(false)
+export default function Header({ onSettingsClick, settingsOpen }) {
+  const { mode, setMode } = useChatStore()
 
   return (
-    <>
-      <header style={s.header}>
-        <div style={s.brand}>
-          <div style={s.logo}>⚡</div>
-          <span style={s.name}>ArguMentor</span>
-        </div>
+    <header className="header">
+      {/* Wordmark */}
+      <div className="header-wordmark" aria-label="ArguMentor">
+        ArguMentor
+      </div>
 
-        <nav style={s.nav}>
-          {MODES.map(m => (
-            <button
-              key={m.id}
-              onClick={() => setMode(m.id)}
-              style={{
-                ...s.modeBtn,
-                background: mode === m.id ? m.color : 'transparent',
-                borderColor: mode === m.id ? m.color : 'var(--border)',
-                color: mode === m.id ? '#fff' : 'var(--muted)',
-                boxShadow: mode === m.id ? `0 0 18px color-mix(in srgb, ${m.color} 40%, transparent)` : 'none',
-              }}
-            >
-              <span>{m.icon}</span>
-              <span style={s.modeLbl}>{m.label}</span>
-            </button>
-          ))}
-        </nav>
-
-        <div style={s.actions}>
-          <button style={s.iconBtn} onClick={clearHistory} title="Clear chat">
-            🗑️
+      {/* Mode tabs */}
+      <nav className="header-nav" role="tablist" aria-label="Mode selection">
+        {MODES.map(m => (
+          <button
+            key={m.key}
+            role="tab"
+            aria-selected={mode === m.key}
+            className={`nav-tab ${mode === m.key ? 'active' : ''}`}
+            onClick={() => setMode(m.key)}
+            data-mode={m.key}
+          >
+            {m.label}
           </button>
-          <button style={s.iconBtn} onClick={() => setShowSettings(true)} title="Settings">
-            ⚙️
-          </button>
-        </div>
-      </header>
+        ))}
+      </nav>
 
-      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
-    </>
+      {/* Actions */}
+      <div className="header-actions">
+        <button
+          className="icon-btn"
+          onClick={onSettingsClick}
+          aria-label="Settings"
+          aria-expanded={settingsOpen}
+          title="Settings"
+          style={settingsOpen ? {
+            color: 'var(--text)',
+            borderColor: 'var(--border-lit)',
+            background: 'var(--bg-alt)'
+          } : {}}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
   )
-}
-
-const s = {
-  header: {
-    display: 'flex', alignItems: 'center', gap: 16,
-    padding: '11px 20px',
-    background: 'rgba(8,8,14,0.88)',
-    backdropFilter: 'blur(20px)',
-    borderBottom: '1px solid var(--border)',
-    position: 'sticky', top: 0, zIndex: 100,
-    flexShrink: 0,
-  },
-  brand: { display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 },
-  logo: {
-    width: 34, height: 34, borderRadius: 8,
-    background: 'var(--accent-dim)', border: '1px solid var(--border-lit)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 17,
-  },
-  name: {
-    fontWeight: 800, fontSize: '1.15rem', letterSpacing: '-0.03em',
-    background: 'linear-gradient(90deg, var(--text), var(--accent))',
-    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-  },
-  nav: { display: 'flex', gap: 6, flex: 1, justifyContent: 'center' },
-  modeBtn: {
-    display: 'flex', alignItems: 'center', gap: 6,
-    padding: '6px 14px', borderRadius: 99,
-    border: '1px solid', cursor: 'pointer',
-    fontFamily: 'var(--font)', fontSize: '0.82rem', fontWeight: 600,
-    transition: 'all 0.2s ease', whiteSpace: 'nowrap',
-  },
-  modeLbl: {},
-  actions: { display: 'flex', gap: 6, flexShrink: 0 },
-  iconBtn: {
-    width: 34, height: 34, borderRadius: 8,
-    background: 'transparent', border: '1px solid var(--border)',
-    cursor: 'pointer', fontSize: 15,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    transition: 'background 0.15s',
-  },
 }
