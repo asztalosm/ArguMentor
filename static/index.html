@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Socratic Examiner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  /* ── DESIGN DIRECTION: Academic brutalism — old examination hall meets terminal ── */
+
+  :root {
+    --ink:      #0e0e0e;
+    --paper:    #f5f0e8;
+    --cream:    #ece6d6;
+    --red:      #b91c1c;
+    --gold:     #92731a;
+    --gray:     #6b6560;
+    --border:   #2a2520;
+    --examiner: #1a1a2e;
+    --student:  #f5f0e8;
+    --score-bg: #1a1a2e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--border);
+    color: var(--paper);
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px solid var(--gold);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .logo-block h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    color: var(--paper);
+  }
+  .logo-block .subtitle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: #a09880;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* ── MODE TOGGLE ── */
+  .mode-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .mode-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: #a09880;
+    text-transform: uppercase;
+  }
+  .toggle-group {
+    display: flex;
+    border: 1px solid #5a5040;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .toggle-btn {
+    background: transparent;
+    border: none;
+    color: #a09880;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    padding: 7px 16px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+  }
+  .toggle-btn.active {
+    background: var(--gold);
+    color: var(--border);
+    font-weight: 500;
+  }
+  .toggle-btn:hover:not(.active) { background: #2a2520; color: var(--paper); }
+
+  /* ── MAIN LAYOUT ── */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 860px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0;
+  }
+
+  /* ── TOPIC BAR ── */
+  .topic-bar {
+    display: flex;
+    gap: 0;
+    border-bottom: 2px solid var(--border);
+    background: var(--cream);
+  }
+  .topic-bar input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    padding: 14px 20px;
+    color: var(--ink);
+  }
+  .topic-bar input::placeholder { color: #b0a898; }
+  .topic-bar button {
+    background: var(--border);
+    border: none;
+    color: var(--paper);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    padding: 14px 20px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.15s;
+  }
+  .topic-bar button:hover { background: var(--gold); color: var(--border); }
+
+  /* ── CHAT WINDOW ── */
+  #chat-window {
+    flex: 1;
+    min-height: 360px;
+    max-height: 450px;
+    overflow-y: auto;
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    border-bottom: 2px solid var(--border);
+    background: var(--paper);
+  }
+
+  /* Scrollbar */
+  #chat-window::-webkit-scrollbar { width: 6px; }
+  #chat-window::-webkit-scrollbar-track { background: var(--cream); }
+  #chat-window::-webkit-scrollbar-thumb { background: #b0a898; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    color: #b0a898;
+    margin: auto;
+  }
+  .empty-state .big {
+    font-family: 'Playfair Display', serif;
+    font-size: 42px;
+    font-weight: 900;
+    color: #d4cfc6;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .empty-state p {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    color: #c0bab0;
+    text-transform: uppercase;
+  }
+
+  /* Messages */
+  .msg {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  .msg-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .msg.examiner .msg-label { color: var(--red); }
+  .msg.student .msg-label { color: var(--gold); }
+
+  .msg-bubble {
+    padding: 12px 16px;
+    border-left: 3px solid;
+    font-size: 14.5px;
+    line-height: 1.65;
+    max-width: 90%;
+  }
+  .msg.examiner .msg-bubble {
+    border-color: var(--red);
+    background: #fff8f8;
+    font-style: italic;
+  }
+  .msg.student .msg-bubble {
+    border-color: var(--gold);
+    background: var(--cream);
+    align-self: flex-end;
+  }
+  .msg.student { align-items: flex-end; }
+
+  /* Sentiment badge */
+  .sentiment-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 2px;
+    align-self: flex-end;
+    margin-top: 2px;
+  }
+  .sentiment-positive { background: #dcfce7; color: #166534; }
+  .sentiment-neutral  { background: #f3f4f6; color: #374151; }
+  .sentiment-negative { background: #fee2e2; color: #991b1b; }
+  .sentiment-mixed    { background: #fef9c3; color: #713f12; }
+
+  /* Typing indicator */
+  .typing-indicator .msg-bubble {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 14px 16px;
+  }
+  .dot {
+    width: 7px; height: 7px;
+    background: var(--red);
+    border-radius: 50%;
+    animation: pulse 1.2s infinite;
+  }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1); }
+  }
+
+  /* ── INPUT AREA ── */
+  .input-area {
+    display: flex;
+    gap: 0;
+    background: var(--cream);
+    border-bottom: 2px solid var(--border);
+  }
+  textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 16px 20px;
+    color: var(--ink);
+    min-height: 72px;
+    max-height: 180px;
+  }
+  textarea::placeholder { color: #b0a898; }
+  .input-buttons {
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid #d0c9bc;
+  }
+  .btn-submit {
+    flex: 1;
+    background: var(--border);
+    border: none;
+    color: var(--paper);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    padding: 0 22px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .btn-submit:hover { background: #3a3020; }
+  .btn-submit:disabled { background: #8a8278; cursor: not-allowed; }
+  .btn-end {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-top: 1px solid #d0c9bc;
+    color: var(--red);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    padding: 0 22px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .btn-end:hover { background: #fee2e2; }
+  .btn-end:disabled { color: #c0bab0; cursor: not-allowed; }
+
+  /* ── STATUS BAR ── */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 20px;
+    background: var(--cream);
+    border-bottom: 1px solid #d0c9bc;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: #9a9288;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  #status-text { color: var(--gray); }
+  .mode-indicator {
+    padding: 2px 10px;
+    font-size: 9px;
+    border: 1px solid;
+  }
+  .mode-examiner { border-color: var(--red); color: var(--red); }
+  .mode-coaching { border-color: var(--gold); color: var(--gold); }
+
+  /* ── FEEDBACK PANEL ── */
+  #feedback-panel {
+    display: none;
+    padding: 32px 28px;
+    background: var(--paper);
+    animation: fadeIn 0.4s ease;
+  }
+  #feedback-panel.visible { display: block; }
+
+  .feedback-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    font-weight: 700;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 12px;
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .feedback-title .sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--gray);
+    letter-spacing: 0.1em;
+  }
+
+  .scores-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .score-card {
+    background: var(--score-bg);
+    color: var(--paper);
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .score-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #9090a8;
+    max-width: 60%;
+  }
+  .score-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 32px;
+    font-weight: 900;
+    line-height: 1;
+  }
+  .score-value.high { color: #6ee7b7; }
+  .score-value.mid  { color: var(--gold); }
+  .score-value.low  { color: #fca5a5; }
+
+  .feedback-section {
+    margin-bottom: 22px;
+    border-left: 3px solid var(--border);
+    padding-left: 16px;
+  }
+  .feedback-section h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 10px;
+  }
+  .feedback-section p, .feedback-section li {
+    font-size: 14px;
+    color: #3a3530;
+    line-height: 1.7;
+  }
+  .feedback-section ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .feedback-section li::before { content: "→  "; font-family: 'IBM Plex Mono', monospace; color: var(--gold); }
+
+  .fallacy-tag {
+    display: inline-block;
+    background: #fee2e2;
+    border: 1px solid #fca5a5;
+    color: var(--red);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    padding: 2px 10px;
+    margin-right: 6px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+  .fallacy-example {
+    font-size: 12.5px;
+    color: var(--gray);
+    font-style: italic;
+    margin-top: 4px;
+    display: block;
+    padding-left: 4px;
+  }
+  .no-fallacy { color: #166534; font-size: 13px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+
+  .improvement-item {
+    display: flex;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #e0dbd0;
+  }
+  .improvement-item:last-child { border-bottom: none; }
+  .improvement-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    font-weight: 900;
+    color: #d4cfc6;
+    line-height: 1;
+    min-width: 24px;
+  }
+  .improvement-text {
+    font-size: 14px;
+    color: #3a3530;
+    line-height: 1.7;
+    padding-top: 4px;
+  }
+
+  .btn-restart {
+    display: block;
+    margin: 28px 0 0;
+    background: var(--border);
+    color: var(--paper);
+    border: none;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 14px 28px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-restart:hover { background: var(--gold); color: var(--border); }
+
+  /* Error state */
+  .error-msg {
+    background: #fee2e2;
+    border-left: 3px solid var(--red);
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--red);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* Loading skeleton for feedback */
+  .loading-report {
+    text-align: center;
+    padding: 40px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: #b0a898;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .loading-report::after {
+    content: '';
+    display: block;
+    margin: 16px auto 0;
+    width: 32px;
+    height: 2px;
+    background: var(--gold);
+    animation: expand 1s ease-in-out infinite alternate;
+  }
+  @keyframes expand { from { width: 16px; } to { width: 64px; } }
+
+  @media (max-width: 600px) {
+    .scores-grid { grid-template-columns: 1fr; }
+    header { padding: 14px 16px; }
+    #chat-window { padding: 16px; }
+    .input-area textarea { padding: 12px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════
+     HEADER
+════════════════════════════════════════════════ -->
+<header>
+  <div class="logo-block">
+    <h1>AI Socratic Examiner</h1>
+    <div class="subtitle">Academic Debate &amp; Reasoning Coach</div>
+  </div>
+  <div class="mode-controls">
+    <span class="mode-label">Mode</span>
+    <div class="toggle-group">
+      <button class="toggle-btn active" id="btn-examiner" onclick="setMode('examiner')">Examiner</button>
+      <button class="toggle-btn" id="btn-coaching" onclick="setMode('coaching')">Coaching</button>
+    </div>
+  </div>
+</header>
+
+<!-- ════════════════════════════════════════════════
+     MAIN
+════════════════════════════════════════════════ -->
+<main>
+
+  <!-- TOPIC BAR -->
+  <div class="topic-bar">
+    <input type="text" id="topic-input" placeholder="Enter debate topic (e.g. 'Causes of World War I')" />
+    <button onclick="setTopic()">Set Topic</button>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <span id="status-text">No topic set. State your topic above, then begin your argument.</span>
+    <span class="mode-indicator mode-examiner" id="mode-indicator">Examiner Mode</span>
+  </div>
+
+  <!-- CHAT WINDOW -->
+  <div id="chat-window">
+    <div class="empty-state" id="empty-state">
+      <div class="big">"</div>
+      <p>Present your argument.<br>Be prepared to defend it.</p>
+    </div>
+  </div>
+
+  <!-- INPUT AREA -->
+  <div class="input-area">
+    <textarea
+      id="user-input"
+      placeholder="State your argument or respond to the examiner..."
+      onkeydown="handleKey(event)"
+    ></textarea>
+    <div class="input-buttons">
+      <button class="btn-submit" id="btn-submit" onclick="submitArgument()">Submit →</button>
+      <button class="btn-end" id="btn-end" onclick="endDebate()" disabled>End Debate</button>
+    </div>
+  </div>
+
+  <!-- FEEDBACK PANEL -->
+  <div id="feedback-panel"></div>
+
+</main>
+
+<!-- ════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════ -->
+<script>
+// ── App State ───────────────────────────────────────────
+const state = {
+  mode: 'examiner',
+  topic: '',
+  history: [],          // [{role, content}, ...]
+  debateActive: false,
+  turnCount: 0,
+};
+
+// ── Mode Toggle ─────────────────────────────────────────
+function setMode(mode) {
+  state.mode = mode;
+  document.getElementById('btn-examiner').classList.toggle('active', mode === 'examiner');
+  document.getElementById('btn-coaching').classList.toggle('active', mode === 'coaching');
+  const indicator = document.getElementById('mode-indicator');
+  indicator.textContent = mode === 'examiner' ? 'Examiner Mode' : 'Coaching Mode';
+  indicator.className = 'mode-indicator ' + (mode === 'examiner' ? 'mode-examiner' : 'mode-coaching');
+}
+
+// ── Set Topic ────────────────────────────────────────────
+function setTopic() {
+  const val = document.getElementById('topic-input').value.trim();
+  if (!val) return;
+  state.topic = val;
+  document.getElementById('status-text').textContent = `Topic: "${val}" — Begin your argument.`;
+  document.getElementById('user-input').focus();
+}
+
+// ── Key Handler ──────────────────────────────────────────
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    submitArgument();
+  }
+}
+
+// ── Submit Argument ──────────────────────────────────────
+async function submitArgument() {
+  const inputEl  = document.getElementById('user-input');
+  const text     = inputEl.value.trim();
+  if (!text) return;
+
+  // First message: remove empty state, activate debate
+  if (!state.debateActive) {
+    document.getElementById('empty-state')?.remove();
+    state.debateActive = true;
+    document.getElementById('btn-end').disabled = false;
+  }
+
+  // Render student message
+  appendMessage('student', text);
+  state.history.push({ role: 'user', content: text });
+  inputEl.value = '';
+  state.turnCount++;
+
+  // Disable input while waiting
+  setInputDisabled(true);
+  showTypingIndicator();
+
+  try {
+    const res = await fetch('/api/debate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: text,
+        history: state.history.slice(0, -1),  // send history minus last user turn (included in message)
+        mode: state.mode,
+      }),
+    });
+
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+
+    removeTypingIndicator();
+    appendMessage('examiner', data.reply, null);
+    state.history.push({ role: 'assistant', content: data.reply });
+
+    // Show sentiment on student message
+    if (data.sentiment) {
+      updateSentimentBadge(state.turnCount, data.sentiment);
+    }
+
+  } catch (err) {
+    removeTypingIndicator();
+    appendError(`Request failed: ${err.message}`);
+  } finally {
+    setInputDisabled(false);
+    document.getElementById('user-input').focus();
+  }
+}
+
+// ── End Debate → Generate Report ─────────────────────────
+async function endDebate() {
+  if (!state.debateActive || state.history.length < 2) {
+    appendError("You must exchange at least one argument before ending the debate.");
+    return;
+  }
+
+  setInputDisabled(true);
+  document.getElementById('btn-end').disabled = true;
+  document.getElementById('status-text').textContent = 'Debate ended. Generating evaluation report...';
+
+  const panel = document.getElementById('feedback-panel');
+  panel.innerHTML = '<div class="loading-report">Analyzing arguments</div>';
+  panel.classList.add('visible');
+  panel.scrollIntoView({ behavior: 'smooth' });
+
+  try {
+    const res = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ history: state.history }),
+    });
+
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+
+    renderFeedbackReport(data);
+
+  } catch (err) {
+    panel.innerHTML = `<div class="error-msg">Failed to generate report: ${err.message}</div>`;
+  }
+}
+
+// ── Render Feedback Report ────────────────────────────────
+function renderFeedbackReport(d) {
+  const scoreColor = n => n >= 7 ? 'high' : n >= 4 ? 'mid' : 'low';
+
+  const scores = [
+    { name: 'Claim Clarity',         val: d.claim_clarity_score },
+    { name: 'Evidence Strength',     val: d.evidence_strength_score },
+    { name: 'Logical Consistency',   val: d.logical_consistency_score },
+    { name: 'Persuasiveness',        val: d.persuasiveness_rating },
+  ];
+
+  const scoresHTML = scores.map(s => `
+    <div class="score-card">
+      <div class="score-name">${s.name}</div>
+      <div class="score-value ${scoreColor(s.val)}">${s.val}<span style="font-size:14px;opacity:0.4">/10</span></div>
+    </div>
+  `).join('');
+
+  const fallaciesHTML = d.fallacies_detected && d.fallacies_detected.length > 0
+    ? d.fallacies_detected.map(f => `
+        <div style="margin-bottom:10px">
+          <span class="fallacy-tag">${escHtml(f.type)}</span>
+          <span class="fallacy-example">${escHtml(f.example)}</span>
+        </div>
+      `).join('')
+    : '<span class="no-fallacy">✓ No major logical fallacies detected.</span>';
+
+  const suggestionsHTML = (d.improvement_suggestions || []).map((s, i) => `
+    <div class="improvement-item">
+      <div class="improvement-num">${i + 1}</div>
+      <div class="improvement-text">${escHtml(s)}</div>
+    </div>
+  `).join('');
+
+  document.getElementById('feedback-panel').innerHTML = `
+    <div class="feedback-title">
+      Examination Report
+      <span class="sub">${new Date().toLocaleDateString('en-GB', {day:'numeric',month:'long',year:'numeric'})}</span>
+    </div>
+
+    <div class="scores-grid">${scoresHTML}</div>
+
+    <div class="feedback-section">
+      <h3>Argument Structure Analysis</h3>
+      <p>${escHtml(d.argument_structure_analysis || '—')}</p>
+    </div>
+
+    <div class="feedback-section">
+      <h3>Fallacies Detected</h3>
+      ${fallaciesHTML}
+    </div>
+
+    <div class="feedback-section">
+      <h3>Emotional Tone</h3>
+      <p>${escHtml(d.emotional_tone_feedback || '—')}</p>
+    </div>
+
+    <div class="feedback-section">
+      <h3>3 Concrete Improvement Suggestions</h3>
+      ${suggestionsHTML}
+    </div>
+
+    <button class="btn-restart" onclick="restartDebate()">↺ New Debate</button>
+  `;
+}
+
+// ── DOM Helpers ───────────────────────────────────────────
+function appendMessage(role, content, sentimentData) {
+  const window_ = document.getElementById('chat-window');
+  const id = `msg-${state.turnCount}`;
+
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.id = id;
+  div.innerHTML = `
+    <div class="msg-label">${role === 'examiner' ? '▸ Examiner' : '▸ You'}</div>
+    <div class="msg-bubble">${escHtml(content)}</div>
+  `;
+  window_.appendChild(div);
+  scrollChat();
+  return div;
+}
+
+function updateSentimentBadge(turnId, sentiment) {
+  const msgEl = document.getElementById(`msg-${turnId}`);
+  if (!msgEl) return;
+  const badge = document.createElement('div');
+  const s = sentiment.sentiment;
+  badge.className = `sentiment-badge sentiment-${s}`;
+  badge.textContent = `Tone: ${s}`;
+  msgEl.appendChild(badge);
+}
+
+function showTypingIndicator() {
+  const window_ = document.getElementById('chat-window');
+  const div = document.createElement('div');
+  div.className = 'msg examiner typing-indicator';
+  div.id = 'typing';
+  div.innerHTML = `
+    <div class="msg-label">▸ Examiner</div>
+    <div class="msg-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  `;
+  window_.appendChild(div);
+  scrollChat();
+}
+
+function removeTypingIndicator() {
+  document.getElementById('typing')?.remove();
+}
+
+function appendError(msg) {
+  const window_ = document.getElementById('chat-window');
+  const div = document.createElement('div');
+  div.className = 'error-msg';
+  div.textContent = `Error: ${msg}`;
+  window_.appendChild(div);
+  scrollChat();
+}
+
+function setInputDisabled(val) {
+  document.getElementById('user-input').disabled = val;
+  document.getElementById('btn-submit').disabled = val;
+}
+
+function scrollChat() {
+  const w = document.getElementById('chat-window');
+  w.scrollTop = w.scrollHeight;
+}
+
+function restartDebate() {
+  state.history = [];
+  state.debateActive = false;
+  state.turnCount = 0;
+  state.topic = '';
+  document.getElementById('chat-window').innerHTML =
+    `<div class="empty-state" id="empty-state"><div class="big">"</div><p>Present your argument.<br>Be prepared to defend it.</p></div>`;
+  document.getElementById('feedback-panel').classList.remove('visible');
+  document.getElementById('feedback-panel').innerHTML = '';
+  document.getElementById('topic-input').value = '';
+  document.getElementById('status-text').textContent = 'No topic set. State your topic above, then begin your argument.';
+  document.getElementById('btn-end').disabled = true;
+  document.getElementById('user-input').disabled = false;
+  document.getElementById('btn-submit').disabled = false;
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ── Azure Speech Placeholder ──────────────────────────────
+// To enable voice input, uncomment this block and implement the /api/transcribe endpoint.
+//
+// document.getElementById('btn-voice').addEventListener('click', async () => {
+//   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+//   const recorder = new MediaRecorder(stream);
+//   const chunks = [];
+//   recorder.ondataavailable = e => chunks.push(e.data);
+//   recorder.onstop = async () => {
+//     const blob = new Blob(chunks, { type: 'audio/webm' });
+//     const formData = new FormData();
+//     formData.append('audio_file', blob, 'voice.webm');
+//     const res = await fetch('/api/transcribe', { method: 'POST', body: formData });
+//     const data = await res.json();
+//     document.getElementById('user-input').value = data.transcript;
+//   };
+//   recorder.start();
+//   setTimeout(() => recorder.stop(), 5000); // 5s recording
+// });
+</script>
+</body>
+</html>
