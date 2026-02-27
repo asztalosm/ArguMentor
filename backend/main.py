@@ -79,8 +79,8 @@ async def chat(body: ChatRequest):
     response = await client.chat.completions.create(
         model=DEPLOYMENT,
         messages=messages,
-        temperature=0.85,
-        max_tokens=800,
+        temperature=1,
+        max_completion_tokens=800,
     )
 
     return {"reply": response.choices[0].message.content.strip()}
