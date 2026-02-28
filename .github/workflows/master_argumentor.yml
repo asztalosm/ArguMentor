@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -15,17 +15,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python version
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install dependencies into backend folder
+      - name: Install dependencies
         run: |
-          pip install -r backend/requirements.txt --target backend
+          python -m venv antenv
+          source antenv/bin/activate
+          pip install -r backend/requirements.txt
 
-      - name: List backend folder contents
-        run: ls -la backend/
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-app
+          path: |
+            backend/
+            !antenv/
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: python-app
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
@@ -33,4 +50,3 @@ jobs:
           app-name: 'ArguMentor'
           slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_2F41789FBEBD4B0A83FD60851AA48FFD }}
-          package: ./backend
