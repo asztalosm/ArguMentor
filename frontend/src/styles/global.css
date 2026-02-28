@@ -421,11 +421,11 @@ body::before {
   resize: none;
   font-family: var(--font-body);
   font-size: 0.875rem;
+  margin: auto;
   line-height: 1.6;
   color: var(--text);
   max-height: 160px;
   overflow-y: auto;
-  margin: auto 0;
 }
 
 .chat-textarea::placeholder { color: var(--dim); }
@@ -585,4 +585,188 @@ body::before {
   :root { font-size: max(14px, calc(var(--font-size) * 0.93)); }
   .header { padding: 0 16px; }
   .header-wordmark { font-size: 0.9rem; }
+}
+
+/* ═══════════════════════════════════════════════
+   MessageFormatter styles
+   ═══════════════════════════════════════════════ */
+
+/* Root container — vertical rhythm via gap */
+.fmt-root {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+/* ── User text ── */
+.fmt-user-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── Headings ── */
+.fmt-heading {
+  font-family: var(--font);
+  font-weight: 500;
+  line-height: 1.25;
+  color: var(--text);
+  margin-top: 4px;
+}
+.fmt-h1 { font-size: 1.2rem;  letter-spacing: -0.01em; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+.fmt-h2 { font-size: 1.05rem; letter-spacing: -0.005em; }
+.fmt-h3 { font-size: 0.95rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-family: var(--mono); font-weight: 400; }
+.fmt-h4 { font-size: 0.88rem; color: var(--muted); font-family: var(--mono); font-weight: 400; }
+
+/* ── Paragraph ── */
+.fmt-para {
+  line-height: 1.8;
+  color: var(--text-body);
+  word-break: break-word;
+}
+
+/* ── Lists ── */
+.fmt-ul,
+.fmt-ol {
+  padding-left: 1.4em;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.fmt-ul { list-style-type: none; padding-left: 0; }
+.fmt-ol { list-style-type: decimal; }
+
+.fmt-ul .fmt-li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  line-height: 1.7;
+  color: var(--text-body);
+}
+.fmt-ul .fmt-li::before {
+  content: '–';
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.fmt-ol .fmt-li {
+  line-height: 1.7;
+  color: var(--text-body);
+  padding-left: 4px;
+}
+.fmt-ol .fmt-li::marker {
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 0.78rem;
+}
+
+/* ── Blockquote ── */
+.fmt-blockquote {
+  border-left: 2px solid var(--accent);
+  padding: 8px 14px;
+  background: var(--accent-dim);
+  border-radius: 0 var(--r) var(--r) 0;
+  color: var(--muted);
+  font-style: italic;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── Horizontal rule ── */
+.fmt-hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 4px 0;
+}
+
+/* ── Code block ── */
+.fmt-code-block {
+  background: var(--bg);
+  border: 1px solid var(--border-lit);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.fmt-code-lang {
+  display: block;
+  padding: 4px 12px;
+  background: var(--border);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.fmt-code-block pre {
+  margin: 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+}
+.fmt-code-block code {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre;
+}
+
+/* ── Inline elements ── */
+.fmt-bold {
+  font-weight: 700;
+  color: var(--text);
+}
+.fmt-italic {
+  font-style: italic;
+  color: var(--text-body);
+}
+.fmt-code-inline {
+  font-family: var(--mono);
+  font-size: 0.82em;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--text);
+  white-space: nowrap;
+}
+.fmt-quote {
+  color: var(--muted);
+  font-style: italic;
+  border-bottom: 1px dotted var(--border-lit);
+}
+
+/* ── Tier / severity labels ── */
+.fmt-tier {
+  font-family: var(--mono);
+  font-size: 0.7em;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 1px 6px 1px 0;
+  border-radius: 2px;
+}
+.fmt-tier-critical  { color: #c0392b; }
+.fmt-tier-error     { color: #c0392b; }
+.fmt-tier-moderate  { color: #b07d2a; }
+.fmt-tier-warning   { color: #b07d2a; }
+.fmt-tier-minor     { color: var(--muted); }
+.fmt-tier-note      { color: var(--teach); }
+.fmt-tier-important { color: var(--teach); }
+.fmt-tier-definition{ color: var(--hunter); font-style: italic; }
+.fmt-tier-summary   { color: var(--text); }
+.fmt-tier-result    { color: var(--text); }
+
+/* Dark mode adjustments for tier labels */
+[data-theme="dark"] .fmt-tier-critical  { color: #e05a4a; }
+[data-theme="dark"] .fmt-tier-error     { color: #e05a4a; }
+[data-theme="dark"] .fmt-tier-moderate  { color: #d4a045; }
+[data-theme="dark"] .fmt-tier-warning   { color: #d4a045; }
+[data-theme="dark"] .fmt-tier-definition{ color: #3dbf8a; }
+
+/* AI bubble gets a bit more width since content is richer */
+.message-row.ai .message-bubble {
+  max-width: 88%;
 }
