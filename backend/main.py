@@ -4,7 +4,8 @@
 
 import os
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Literal
@@ -14,17 +15,39 @@ load_dotenv()
 
 app = FastAPI(title="ArguMentor API")
 
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:4173",
+    "https://witty-flower-05c662003.1.azurestaticapps.net",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",                                        # local Vite dev
-        "http://localhost:4173",                                        # local Vite preview
-        "https://witty-flower-05c662003.1.azurestaticapps.net",        # production SWA
-    ],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# Explicit OPTIONS preflight handler.
+# FastAPI's CORSMiddleware sometimes fails to intercept OPTIONS before
+# the router returns 405, so we catch every preflight explicitly.
+@app.options("/{rest_of_path:path}")
+async def preflight_handler(request: Request, rest_of_path: str) -> Response:
+    origin = request.headers.get("origin", "")
+    if origin in ALLOWED_ORIGINS:
+        return Response(
+            status_code=200,
+            headers={
+                "Access-Control-Allow-Origin": origin,
+                "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Max-Age": "86400",
+            },
+        )
+    return Response(status_code=403)
+
 
 # Azure OpenAI client
 client = AsyncAzureOpenAI(
@@ -35,7 +58,6 @@ client = AsyncAzureOpenAI(
 
 DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-5-nano")
 
-# System prompt for each mode
 PROMPTS = {
     "debate": (
         "You are operating in SOCRATIC DEBATE MODE.\n"
