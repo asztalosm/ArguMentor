@@ -43,6 +43,12 @@ jobs:
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
 
+      - name: Copy staticwebapp.config.json into dist
+        run: cp frontend/staticwebapp.config.json frontend/dist/staticwebapp.config.json
+
+      - name: Verify dist contents
+        run: ls -la frontend/dist/
+
       - name: Install OIDC Client from Core Package
         run: npm install @actions/core@1.6.0 @actions/http-client
 
@@ -61,9 +67,9 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_WITTY_FLOWER_05C662003 }}
           action: "upload"
-          app_location: "frontend/dist"   # point directly at the pre-built output
+          app_location: "frontend/dist"
           api_location: ""
-          output_location: ""             # empty = don't build again, just upload as-is
+          output_location: ""
           github_id_token: ${{ steps.idtoken.outputs.result }}
 
   close_pull_request_job:
