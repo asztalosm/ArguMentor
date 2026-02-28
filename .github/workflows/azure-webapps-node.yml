@@ -5,7 +5,7 @@ on:
 
 env:
   AZURE_WEBAPP_NAME: ArguMentor    # Set this to your web app name
-  AZURE_WEBAPP_PACKAGE_PATH: 'frontend'      # Correct path to the frontend project folder
+  AZURE_WEBAPP_PACKAGE_PATH: 'frontend'  # Correct path to the frontend project folder
   NODE_VERSION: '20.x'             # Node version
 
 permissions:
@@ -15,7 +15,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4  # Checkout the repository
 
     - name: Set up Node.js
       uses: actions/setup-node@v4
@@ -25,16 +25,16 @@ jobs:
 
     - name: Install dependencies, build, and test frontend
       run: |
-        cd frontend  # Ensure you are in the frontend directory
-        npm install  # Install dependencies
-        npm run build --if-present  # Builds the frontend, if there is a build script
-        npm run test --if-present   # Runs tests, if tests are defined
+        cd frontend  # Ensure we are in the frontend directory
+        npm install  # Install dependencies from package.json (this will create the package-lock.json if it doesn't exist)
+        npm run build --if-present  # Run build script if present
+        npm run test --if-present   # Run tests if defined
 
     - name: Upload artifact for deployment job
       uses: actions/upload-artifact@v4
       with:
         name: frontend-artifact
-        path: frontend  # Ensure the frontend is correctly packaged
+        path: frontend  # Package the entire frontend folder for deployment
 
   deploy:
     permissions:
@@ -51,10 +51,10 @@ jobs:
       with:
         name: frontend-artifact
 
-    - name: 'Deploy to Azure WebApp'
+    - name: Deploy to Azure WebApp
       id: deploy-to-webapp
       uses: azure/webapps-deploy@v2
       with:
         app-name: ${{ env.AZURE_WEBAPP_NAME }}
         publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-        package: 'frontend'  # Point to the correct frontend folder
+        package: 'frontend'  # Correct path for frontend package (make sure it points to the folder with build output)
