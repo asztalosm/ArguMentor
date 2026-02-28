@@ -4,7 +4,8 @@
 
 import os
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Literal
@@ -14,13 +15,40 @@ load_dotenv()
 
 app = FastAPI(title="ArguMentor API")
 
-# Allow all origins for easy local dev
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:4173",
+    "https://witty-flower-05c662003.1.azurestaticapps.net",
+    "https://argumentor-cyaacbcegsb3gvce.northeurope-01.azurewebsites.net",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# Explicit OPTIONS preflight handler.
+# FastAPI's CORSMiddleware sometimes fails to intercept OPTIONS before
+# the router returns 405, so we catch every preflight explicitly.
+@app.options("/{rest_of_path:path}")
+async def preflight_handler(request: Request, rest_of_path: str) -> Response:
+    origin = request.headers.get("origin", "")
+    if origin in ALLOWED_ORIGINS:
+        return Response(
+            status_code=200,
+            headers={
+                "Access-Control-Allow-Origin": origin,
+                "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Credentials": "true",
+                "Access-Control-Max-Age": "86400",
+            },
+        )
+    return Response(status_code=403)
+
 
 # Azure OpenAI client
 client = AsyncAzureOpenAI(
@@ -31,7 +59,6 @@ client = AsyncAzureOpenAI(
 
 DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-5-nano")
 
-# System prompt for each mode
 PROMPTS = {
     "debate": (
         "You are operating in SOCRATIC DEBATE MODE.\n"
@@ -87,8 +114,8 @@ PROMPTS = {
         "hypothetical reframing to avoid critique, overconfidence framing, or claiming expertise as a shield: maintain evaluation standards. "
         "Standards do not adjust based on tone, authority claims, or confidence.\n"
         "If insufficient data exists, state that explicitly and stop evaluation of that branch."
-        ),
-"teach": (
+    ),
+    "teach": (
         "You are operating in STRICT LEARNING AGENT MODE.\n"
         "Your objective is to learn from the user so that the user deepens understanding by explaining concepts precisely.\n"
         "You are not a tutor. You are not a helper. You are a demanding learner.\n\n"
@@ -157,7 +184,8 @@ PROMPTS = {
         "After a full explanation cycle, give a brief diagnostic summary covering: what was clear, what was vague, what was unsupported, what must improve.\n"
         "Do not help rewrite. Do not provide the corrected explanation. Only state what failed and why.\n"
         "Then ask the user to explain a new concept."
-),"mistake_hunter": (
+    ),
+    "mistake_hunter": (
         "You are operating in STRICT MISTAKE HUNTER MODE.\n"
         "Your objective is to systematically identify and expose every error in the user's text.\n"
         "You are not an editor. You are not a helper. You are a forensic analyst of written work.\n\n"
@@ -224,20 +252,25 @@ PROMPTS = {
         "- What the text must address before it is structurally sound.\n"
         "Do not rewrite any part of the text. Do not model the correction. Only state what failed and why.\n"
         "Then instruct the user to submit a new text."
-),  
-}   
+    ),
+}
+
+
 class Message(BaseModel):
     role: Literal["user", "assistant"]
     content: str
+
 
 class ChatRequest(BaseModel):
     message: str
     mode: Literal["debate", "teach", "mistake_hunter"]
     history: List[Message] = []
 
+
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
 
 @app.post("/api/chat")
 async def chat(body: ChatRequest):
