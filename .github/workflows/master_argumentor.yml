@@ -6,30 +6,16 @@ on:
       - master
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
-
-    # Step 1: Install dependencies in the backend directory
-    - name: Install dependencies
-      run: |
-        cd backend  # Change to the backend folder
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt  # Install backend dependencies
-
-    # Step 2: Deploy to Azure App Service
     - name: Deploy to Azure App Service
       uses: azure/webapps-deploy@v2
       with:
-        app-name: 'ArguMentor'  # Replace with your Azure App Service name
-        slot-name: 'production'  # Change if you're using deployment slots
-        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}  # Azure Publish Profile secret
-        package: './backend'  # Package the 'backend' folder
+        app-name: 'ArguMentor'
+        slot-name: 'production'
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+        package: './backend'
