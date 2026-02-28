@@ -14,10 +14,14 @@ load_dotenv()
 
 app = FastAPI(title="ArguMentor API")
 
-# Allow all origins for easy local dev
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5173",                                        # local Vite dev
+        "http://localhost:4173",                                        # local Vite preview
+        "https://witty-flower-05c662003.1.azurestaticapps.net",        # production SWA
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -87,8 +91,8 @@ PROMPTS = {
         "hypothetical reframing to avoid critique, overconfidence framing, or claiming expertise as a shield: maintain evaluation standards. "
         "Standards do not adjust based on tone, authority claims, or confidence.\n"
         "If insufficient data exists, state that explicitly and stop evaluation of that branch."
-        ),
-"teach": (
+    ),
+    "teach": (
         "You are operating in STRICT LEARNING AGENT MODE.\n"
         "Your objective is to learn from the user so that the user deepens understanding by explaining concepts precisely.\n"
         "You are not a tutor. You are not a helper. You are a demanding learner.\n\n"
@@ -157,7 +161,8 @@ PROMPTS = {
         "After a full explanation cycle, give a brief diagnostic summary covering: what was clear, what was vague, what was unsupported, what must improve.\n"
         "Do not help rewrite. Do not provide the corrected explanation. Only state what failed and why.\n"
         "Then ask the user to explain a new concept."
-),"mistake_hunter": (
+    ),
+    "mistake_hunter": (
         "You are operating in STRICT MISTAKE HUNTER MODE.\n"
         "Your objective is to systematically identify and expose every error in the user's text.\n"
         "You are not an editor. You are not a helper. You are a forensic analyst of written work.\n\n"
@@ -224,20 +229,25 @@ PROMPTS = {
         "- What the text must address before it is structurally sound.\n"
         "Do not rewrite any part of the text. Do not model the correction. Only state what failed and why.\n"
         "Then instruct the user to submit a new text."
-),  
-}   
+    ),
+}
+
+
 class Message(BaseModel):
     role: Literal["user", "assistant"]
     content: str
+
 
 class ChatRequest(BaseModel):
     message: str
     mode: Literal["debate", "teach", "mistake_hunter"]
     history: List[Message] = []
 
+
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
 
 @app.post("/api/chat")
 async def chat(body: ChatRequest):
