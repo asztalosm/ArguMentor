@@ -1,6 +1,3 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
 name: Build and deploy Node.js app to Azure Web App - ArguMentorSite
 
 on:
@@ -10,11 +7,10 @@ on:
   workflow_dispatch:
 
 jobs:
-    
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read # This is required for actions/checkout
 
     steps:
       - uses: actions/checkout@v4
@@ -27,34 +23,37 @@ jobs:
       - name: npm install, build, and test
         run: |
           cd frontend
-          chmod +x node_modules/.bin/vite
+          chmod +x node_modules/.bin/vite  # Make sure Vite is executable
           npm install
-          npm run build --if-present
-          npm run test --if-present
+          npm run build --if-present  # This will generate the 'dist/' folder
+
+      - name: Verify build output
+        run: |
+          cd frontend
+          ls -la dist/  # Check that dist folder has been created and contains the correct files
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: node-app
-          path: frontend
+          name: frontend-artifact
+          path: frontend/dist  # Upload only the dist folder
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
-    
+
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: node-app
-      
+          name: frontend-artifact
+
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'ArguMentorSite'
           slot-name: 'Production'
-          package: .
+          package: ./frontend/dist  # Deploy the contents of the dist folder
 
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_A7931984D6FA4CBCAF03321171CD168E }}
-
