@@ -1,17 +1,21 @@
 // src/services/api.js
-// Talks to the FastAPI backend at /api/chat
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
+const BASE_URL = import.meta.env.VITE_API_URL
+
+// Catch missing env var at startup so it fails loudly in the console
+if (!BASE_URL) {
+  console.error(
+    '[api] VITE_API_URL is not defined. ' +
+    'Set it in .env.local for dev, or as a GitHub Actions variable for production.'
+  )
+}
 
 /**
- * Send a message to the ArguMentor backend.
- *
  * @param {object} params
- * @param {string} params.message   - The user's latest message text
+ * @param {string} params.message
  * @param {'debate'|'teach'|'mistake_hunter'} params.mode
  * @param {Array<{role:'user'|'assistant', content:string}>} params.history
- *   - Full conversation history EXCLUDING the current message
- * @returns {Promise<string>} - The assistant reply text
+ * @returns {Promise<string>}
  */
 export async function sendChat({ message, mode, history = [] }) {
   const res = await fetch(`${BASE_URL}/api/chat`, {
@@ -21,7 +25,6 @@ export async function sendChat({ message, mode, history = [] }) {
   })
 
   if (!res.ok) {
-    // Surface the server error message if available
     let detail = `Server error ${res.status}`
     try {
       const body = await res.json()
