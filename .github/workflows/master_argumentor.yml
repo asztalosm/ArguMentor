@@ -1,52 +1,35 @@
-name: Build and deploy Python app to Azure Web App - ArguMentor
+name: Deploy FastAPI Backend to Azure
 
 on:
   push:
     branches:
       - master
-  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     steps:
-      - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Set up Python version
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
 
-      - name: Install dependencies
-        run: |
-          python -m venv antenv
-          source antenv/bin/activate
-          pip install -r backend/requirements.txt
+    # Step 1: Install dependencies in the backend directory
+    - name: Install dependencies
+      run: |
+        cd backend  # Change to the backend folder
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt  # Install backend dependencies
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-app
-          path: |
-            backend/
-            !antenv/
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: python-app
-
-      - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: 'ArguMentor'
-          slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_2F41789FBEBD4B0A83FD60851AA48FFD }}
+    # Step 2: Deploy to Azure App Service
+    - name: Deploy to Azure App Service
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'ArguMentor'  # Replace with your Azure App Service name
+        slot-name: 'production'  # Change if you're using deployment slots
+        publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}  # Azure Publish Profile secret
+        package: './backend'  # Package the 'backend' folder
