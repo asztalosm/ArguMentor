@@ -38,6 +38,10 @@ jobs:
           chmod +x node_modules/.bin/vite  # Ensure vite is executable
           npm install
           npm run build  # Build the app
+      - name: List files in frontend directory
+        run: |
+          cd frontend
+          ls -la  # List all files to confirm build output location
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
