@@ -19,6 +19,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:4173",
     "https://witty-flower-05c662003.1.azurestaticapps.net",
+    "https://argumentor-cyaacbcegsb3gvce.northeurope-01.azurewebsites.net",
 ]
 
 app.add_middleware(
